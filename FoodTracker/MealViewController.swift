@@ -1,5 +1,5 @@
 //
-//  ViewController.swift
+//  MealViewController.swift
 //  FoodTracker
 //
 //  Created by Jonathan Deng on 5/21/17.
@@ -7,12 +7,16 @@
 //
 
 import UIKit
+import os.log
 
-class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+class MealViewController: UIViewController, UITextFieldDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     // MARK: Properties
     @IBOutlet weak var nameTextField: UITextField!
-    @IBOutlet weak var mealNameLabel: UILabel!
     @IBOutlet weak var photoImageView: UIImageView!
+    @IBOutlet weak var ratingControl: RatingControl!
+    var meal: Meal?
+    @IBOutlet weak var cancelButton: UIBarButtonItem!
+    @IBOutlet weak var saveButton: UIBarButtonItem!
     
     //MARK: UITextFieldDelegate
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -21,7 +25,12 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
     }
     
     func textFieldDidEndEditing(_ textField: UITextField) {
-        mealNameLabel.text = textField.text
+        updateSaveButtonState()
+        navigationItem.title = textField.text
+    }
+    
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+        saveButton.isEnabled = false
     }
     
     // MARK: UIImagePickerControllerDelegate
@@ -36,6 +45,29 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
         }
         photoImageView.image = selectedImage
         
+        dismiss(animated: true, completion: nil)
+    }
+    
+    // MARK: Navigation
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        // the superclass's prepare method doesn't actually do anything
+        super.prepare(for: segue, sender: sender)
+        
+        // when save button is pressed, configure Meal Table View Controller
+        guard let button = sender as? UIBarButtonItem, button === saveButton else {
+            os_log("The save button was not pressed, cancelling", log: OSLog.default, type:.debug )
+            return
+        }
+        
+        // nil coalescing operator: unwraps the value, if the value is nil, returns default value instead
+        let name = nameTextField.text ?? ""
+        let photo = photoImageView.image
+        let rating = ratingControl.rating
+        
+        meal = Meal(name: name, photo: photo, rating: rating)
+    }
+
+    @IBAction func cancel(_ sender: UIBarButtonItem) {
         dismiss(animated: true, completion: nil)
     }
 
@@ -55,17 +87,18 @@ class ViewController: UIViewController, UITextFieldDelegate, UIImagePickerContro
         // present method implicitly called on "self"
         present(imageController, animated: true, completion: nil)
     }
-    @IBAction func setDefaultTextLabel(_ sender: UIButton) {
-        // code inside this block will run when the button is clicked
-        mealNameLabel.text = "hello jon"
-    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         // specify self as delegate for text field - i.e. eventhandler
         nameTextField.delegate = self
+        updateSaveButtonState()
     }
-
+    // MARK: Private Methods
+    private func updateSaveButtonState(){
+        let text = nameTextField.text ?? ""
+        saveButton.isEnabled = !text.isEmpty
+    }
 }
 
