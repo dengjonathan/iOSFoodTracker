@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import OSLog
 
 class MealTableViewController: UITableViewController {
     // MARK: properties
@@ -86,15 +87,37 @@ class MealTableViewController: UITableViewController {
     }
     */
 
-    /*
+
     // MARK: - Navigation
 
     // In a storyboard-based application, you will often want to do a little preparation before navigation
+    // the segue object has all the informationa about destination and root
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destinationViewController.
-        // Pass the selected object to the new view controller.
+//         Get the new view controller using segue.destinationViewController.
+//         Pass the selected object to the new view controller.
+        super.prepare(for: segue, sender: sender)
+        switch(segue.identifier ?? "") {
+            case "AddItem":
+                // if we're a adding a new item we don't need to inject any data into the scene
+                os_log("adding a new meal", log: OSLog.default, type:.debug)
+            case "ShowDetail":
+                guard let mealDetailViewController = segue.destination as? MealViewController else {
+                    fatalError("unexpected destination \(segue.destination)")
+                }
+            
+                guard let selectedMealCell = sender as? MealTableViewCell else {
+                    fatalError("unexpected sender \(segue.sender)")
+                }
+            
+                guard let indexPath = tableView.indexPath(for: selectedMealCell) else {
+                    fatalError("no cell is selected/ or the selected cell is not displayed on table")
+                }
+                mealDetailViewController.meal = meals[indexPath.row]
+            default:
+                fatalError("unexpected segue identifier")
+            }
     }
-    */
+
     // MARK: private functions
     private func loadSampleMeals() {
         let photo1 = UIImage(named: "image1")
@@ -115,11 +138,14 @@ class MealTableViewController: UITableViewController {
             // put new meal at end of first section
             let indexPath = IndexPath(row: meals.count, section: 0)
             // the at argument is an array of indexes to get to the node that we're looking for
-            // in this case we're only going one level down
-            tableView.insertRows(at: [indexPath], with: .automatic)
             
             // update model
             meals.append(meal)
+            
+            // in this case we're only going one level down
+            // when inserting rows, table will automatically use the data source
+            // which is member var meals
+            tableView.insertRows(at: [indexPath], with: .automatic)
         }
     }
 }
