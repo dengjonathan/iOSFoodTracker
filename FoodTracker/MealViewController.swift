@@ -68,7 +68,19 @@ class MealViewController: UIViewController, UITextFieldDelegate, UIImagePickerCo
     }
 
     @IBAction func cancel(_ sender: UIBarButtonItem) {
-        dismiss(animated: true, completion: nil)
+        // check which state we're in: edit or add new
+        
+        // presentingViewController is the closest ancestor that presented a view modally
+        let isPresentingInAddMealMode: Bool = presentingViewController is UINavigationController
+        
+        // if we are in add new meal mode (i.e. meal detail view is presented modally
+        if (isPresentingInAddMealMode) {
+            dismiss(animated: true, completion: nil)
+        } else if let owningNavigationController = navigationController {
+            owningNavigationController.popViewController(animated: true)
+        } else {
+            fatalError("The MealViewController is not inside a navigation controller")
+        }
     }
 
     // MARK: Actions
@@ -93,6 +105,15 @@ class MealViewController: UIViewController, UITextFieldDelegate, UIImagePickerCo
         // Do any additional setup after loading the view, typically from a nib.
         // specify self as delegate for text field - i.e. eventhandler
         nameTextField.delegate = self
+        
+        // if in meal detail mode, set up view with selected view
+        if let meal = meal {
+            navigationItem.title = meal.name
+            nameTextField.text = meal.name
+            photoImageView.image = meal.photo
+            ratingControl.rating = meal.rating
+        }
+        
         updateSaveButtonState()
     }
     // MARK: Private Methods

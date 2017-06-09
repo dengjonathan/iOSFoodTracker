@@ -6,7 +6,7 @@
 //
 
 import UIKit
-import OSLog
+import os.log
 
 class MealTableViewController: UITableViewController {
     // MARK: properties
@@ -16,8 +16,14 @@ class MealTableViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        loadSampleMeals()
+        
+        // use edit button provided by VC
+        navigationItem.leftBarButtonItem = editButtonItem
+        if let savedMeals = loadMeals() {
+            meals += savedMeals
+        } else {
+            loadSampleMeals()
+        }
     }
 
     override func didReceiveMemoryWarning() {
@@ -52,25 +58,26 @@ class MealTableViewController: UITableViewController {
         return cell
     }
 
-    /*
     // Override to support conditional editing of the table view.
     override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the specified item to be editable.
+        
+//         Return false if you do not want the specified item to be editable.
         return true
     }
-    */
 
-    /*
     // Override to support editing the table view.
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
             // Delete the row from the data source
+            meals.remove(at: indexPath.row)
+            saveMeals()
+            // question: why do I have to imperatively delete the row after I've removed the meal from the data source?
             tableView.deleteRows(at: [indexPath], with: .fade)
         } else if editingStyle == .insert {
             // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-        }    
+        }
     }
-    */
+
 
     /*
     // Override to support rearranging the table view.
@@ -106,7 +113,7 @@ class MealTableViewController: UITableViewController {
                 }
             
                 guard let selectedMealCell = sender as? MealTableViewCell else {
-                    fatalError("unexpected sender \(segue.sender)")
+                    fatalError("unexpected sender \(sender.debugDescription)")
                 }
             
                 guard let indexPath = tableView.indexPath(for: selectedMealCell) else {
@@ -135,18 +142,39 @@ class MealTableViewController: UITableViewController {
         // if the sourceViewController is an instance of MealViewController (or could be cast as one) AND sourceViewController.meal is NOT nil
         // assigns 2 local contants 1. sourceViewController, 2. meal
         if let sourceViewController = sender.source as? MealViewController, let meal = sourceViewController.meal {
-            // put new meal at end of first section
-            let indexPath = IndexPath(row: meals.count, section: 0)
-            // the at argument is an array of indexes to get to the node that we're looking for
             
-            // update model
-            meals.append(meal)
-            
-            // in this case we're only going one level down
-            // when inserting rows, table will automatically use the data source
-            // which is member var meals
-            tableView.insertRows(at: [indexPath], with: .automatic)
+            // if row is selected that means we're updating the row
+            if let selectedIndexPath = tableView.indexPathForSelectedRow {
+               meals[selectedIndexPath.row] = meal
+                tableView.reloadRows(at: [selectedIndexPath], with: .none)
+            } else {
+                // put new meal at end of first section
+                let indexPath = IndexPath(row: meals.count, section: 0)
+                // the at argument is an array of indexes to get to the node that we're looking for
+                
+                // update model
+                meals.append(meal)
+                
+                // in this case we're only going one level down
+                // when inserting rows, table will automatically use the data source
+                // which is member var meals
+                tableView.insertRows(at: [indexPath], with: .automatic)
+            }
+            saveMeals()
         }
+    }
+    
+    private func saveMeals() {
+        let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(meals, toFile: Meal.ArchiveUrl.path)
+        if isSuccessfulSave {
+            os_log("successful save")
+        } else {
+            os_log("failed to save meals")
+        }
+    }
+    
+    private func loadMeals() -> [Meal]? {
+        return NSKeyedUnarchiver.unarchiveObject(withFile: Meal.ArchiveUrl.path) as? [Meal]
     }
 }
 
